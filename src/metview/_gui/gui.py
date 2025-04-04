@@ -8,6 +8,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .._core import constant
 from .models import art_model
+from .utility_widgets import details_pane
 
 
 class Window(QtWidgets.QWidget):
@@ -98,3 +99,42 @@ class Widget(QtWidgets.QWidget):
 
         """
         super().__init__(parent)
+
+        main_layout = QtWidgets.QVBoxLayout()
+        self.setLayout(main_layout)
+
+        # NOTE: The top widgets
+        self._filter_type = QtWidgets.QPushButton("Filter:")
+        self._filter_line = QtWidgets.QLineEdit()
+        self._filter_details = QtWidgets.QPushButton("Details")
+
+        # NOTE: The lower artwork + details widgets
+        #
+        # +-------+-------------------------+
+        # | art_a | name: art_a             |
+        # | art_b | artist: Some Person Jr. |
+        # +-------+-------------------------+
+        #
+        self._no_artwork_label = QtWidgets.QLabel(
+            "No artwork loaded yet. Please wait! ~4 seconds wait time."
+        )
+        self._artwork_view = QtWidgets.QTableView()
+        self._details_switcher = QtWidgets.QStackedWidget()
+        self._details_no_selection_label = QtWidgets.QLabel(
+            "This view will show art information. Please select some art on the left."
+        )
+        self._artwork_switcher = QtWidgets.QStackedWidget()
+        self._artwork_splitter = QtWidgets.QSplitter()
+        self._details_pane = details_pane.DetailsPane()
+        self._details_switcher.addWidget(self._details_no_selection_label)
+        self._details_switcher.addWidget(self._details_pane)
+        self._artwork_switcher.addWidget(self._no_artwork_label)
+        self._artwork_switcher.addWidget(self._artwork_splitter)
+        self._artwork_splitter.addWidget(self._artwork_view)
+        self._artwork_splitter.addWidget(self._details_switcher)
+
+        top = QtWidgets.QHBoxLayout()
+        top.addWidget(self._filter_type)
+        top.addWidget(self._filter_line)
+        main_layout.addLayout(top)
+        main_layout.addWidget(self._artwork_switcher)
