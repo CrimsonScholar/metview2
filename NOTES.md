@@ -35,6 +35,33 @@ packages, each with their own limited APIs. For the sake of simplificity for thi
 `_restapi` can be considered a separate Python package.
 
 
+# Design Decisions
+Qt has some design issues that make this process challenging. The main issues are:
+
+1. Qt spams calls to a model's `data()` method, and unfortunately that is usually
+   where expensive logic in a GUI has to go.
+2. Qt cannot invalidate part of a view which means when the user applies
+   a filter that needs to call `data()` on the whole row, it can create unexpected
+   spikes in latency as Qt tries to re-query the whole viwe at once even if only part of
+   the view was loaded.
+
+The way I got around this is to split the Qt models.
+
+1. `art_model.Model` - This is the real, unabridged data. And on the first
+  query, if there are a lot of rows, this model would be very slow.
+2. `gui._CropProxy` - A filterer that only shows 80 results
+  - This proxy is for the sake of this assessment's requirements. In a production
+    scenario this proxy would likely be a model that implements chunked `canFetchMore` +
+    `fetchMore` implementations.
+3. `_ArtworkSortFilterProxy` - Implements any extra sort and filter logic
+  - Sorting requires getting an Artwork's title and that query is 90-150ms. This would
+    be very slow. But because the other proxies before it limit the amount of data
+    coming through, the remaining data to sort is much easier to handle for Qt.
+
+By progressively adding and limiting the model output we achieve a fast response time
+even though the database latency and queries would normally be too high.
+
+
 # Disclaimer
 ## Git Commits
 Normally I squash all or most of my commits and move the commit messages into

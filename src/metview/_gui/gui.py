@@ -465,11 +465,6 @@ class Widget(QtWidgets.QWidget):
             caller: A function that can customize how we find Artwork identifiers.
 
         """
-
-        def _run_post_search_work() -> None:
-            self._update_main_switcher()
-            self._emit_statistics()
-
         # NOTE: Cancel any in-progress searches so we can run another
         for thread, worker in self._threads:
             worker.stop()
@@ -488,7 +483,8 @@ class Widget(QtWidgets.QWidget):
         self._threads.append((thread, worker))
         worker.moveToThread(thread)
         worker.identifiers_found.connect(self._source_model.update_artwork_identifiers)
-        worker.identifiers_found.connect(_run_post_search_work)
+        worker.identifiers_found.connect(self._update_main_switcher)
+        worker.identifiers_found.connect(self._emit_statistics)
         thread.started.connect(worker.run)
 
         # PERF: To prevent DDOSing The Met accidentally, we wait.
