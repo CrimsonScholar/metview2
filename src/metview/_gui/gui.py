@@ -10,8 +10,8 @@ import typing
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .._core import constant
-from .._restapi import met_get
-from .common import common_qt
+from .._restapi import met_get, met_get_type
+from .common import common_qt, qt_constant
 from .common_widgets import line_edit_extended, tag_bar
 from .models import art_model
 from .utilities import threader
@@ -19,6 +19,50 @@ from .utility_widgets import details_pane
 
 _INDEX_TYPES = QtCore.QModelIndex | QtCore.QPersistentModelIndex
 T = typing.TypeVar("T")
+_DISPLAY_ROLE = QtCore.Qt.ItemDataRole.DisplayRole
+
+
+class _ArtworkSortFilterProxy(QtCore.QSortFilterProxyModel):
+    """Sort and filter artwork based on the user's input."""
+
+    def lessThan(self, left: _INDEX_TYPES, right: _INDEX_TYPES) -> bool:
+        """Check if ``left`` actually comes before ``right`` when both are sorted.
+
+        Args:
+            left: Some Qt locatino to check.
+            right: Another Qt locatino to check.
+
+        Returns:
+            If ``left`` must come before ``right``, return ``True``. If it doesn't
+            matter or ``left`` goes after ``right``, return ``False``.
+
+        """
+
+        def _get_default_text(index: _INDEX_TYPES) -> str:
+            return index.data(_DISPLAY_ROLE) or ""
+
+        column = left.column()
+
+        if column == art_model.Column.datetime:
+            left_datetime = typing.cast(
+                met_get_type.Datetime | None,
+                left.data(art_model.Model.data_role),
+            )
+
+            if not left_datetime:
+                return False
+
+            right_datetime = typing.cast(
+                met_get_type.Datetime | None,
+                right.data(art_model.Model.data_role),
+            )
+
+            if not right_datetime:
+                return True
+
+            return left_datetime < right_datetime
+
+        return _get_default_text(left) < _get_default_text(right)
 
 
 class _CropProxy(QtCore.QIdentityProxyModel):
@@ -373,7 +417,14 @@ class Widget(QtWidgets.QWidget):
         self._source_model = model
         cropper = _CropProxy(parent=self)
         cropper.setSourceModel(model)
-        self._artwork_view.setModel(cropper)
+        sorter = _ArtworkSortFilterProxy(parent=self)
+        sorter.setSourceModel(cropper)
+        self._artwork_view.setModel(sorter)
+
+        self._artwork_view.setSortingEnabled(True)
+        self._artwork_view.sortByColumn(
+            art_model.Column.title, QtCore.Qt.SortOrder.AscendingOrder
+        )
 
 
 def _get_classifications_qlineedit() -> line_edit_extended.CompleterLineEdit:
