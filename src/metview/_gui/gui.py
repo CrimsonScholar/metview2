@@ -360,21 +360,6 @@ class Widget(QtWidgets.QWidget):
 
     def _initialize_interactive_settings(self) -> None:
         """Create any click / automatic functionality for this instance."""
-
-        def _update_if_long_enough() -> None:
-            # PERF: A query with short text can take a very long time. To avoid
-            # user stress, we enforce a minimum before the search shows results.
-            #
-            # XXX: This isn't the best way to do this but, for the purposes of
-            # the assessment, this is enough, I think.
-            #
-            text = self._filter_line.text().strip()
-
-            if text and len(text) < 3:
-                return
-
-            self._update_search()
-
         self._filter_missing_image_check_box.stateChanged.connect(
             _ignore(self._update_search)
         )
@@ -384,12 +369,9 @@ class Widget(QtWidgets.QWidget):
         #
         self._filterer_debouncer.setInterval(200)  # NOTE: Wait 0.2 sec between refresh
         self._filterer_debouncer.setSingleShot(True)
-        self._filterer_debouncer.timeout.connect(_update_if_long_enough)
-        self._filter_line.textChanged.connect(self._filterer_debouncer.start)
+        self._filterer_debouncer.timeout.connect(self._update_search)
         self._filter_button.clicked.connect(self._filterer_debouncer.start)
-        self._classication_widget.textChanged.connect(
-            _ignore(self._filterer_debouncer.start)
-        )
+        self._filter_line.returnPressed.connect(self._filterer_debouncer.start)
 
     def _get_current_artworks(self) -> list[QtCore.QModelIndex]:
         """Get the user's current artwork selection, if any.
