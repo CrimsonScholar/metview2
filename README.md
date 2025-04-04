@@ -17,9 +17,7 @@ That's all for now!
 [The Metropolitan Museum Of Art](The Metropolitan Museum Of Art)!
 
 > [!NOTE]
-> XXX: This is a fake mp4 file. The real video is examples/demo.mp4
-
-https://user-images.githubusercontent.com/12345678/demo.mp4
+> XXX: See the `examples/` folder for more details
 
 
 ## How To Install
