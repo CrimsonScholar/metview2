@@ -218,7 +218,16 @@ def search_objects(
     parsed_url = parse.urlparse(_BASE)
     path = "/public/collection/v1/search"
     # Example: https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&medium=Brass&q=%22%22
-    url = parse.urlunparse((parsed_url.scheme, parsed_url.netloc, path, "", parse.urlencode(parameters), ""))
+    url = parse.urlunparse(
+        (
+            parsed_url.scheme,
+            parsed_url.netloc,
+            path,
+            "",
+            parse.urlencode(parameters),
+            "",
+        )
+    )
     _LOGGER.info('Searching "%s" url.', url)
     response = requests.get(url)
 
