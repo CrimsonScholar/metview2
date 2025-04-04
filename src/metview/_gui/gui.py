@@ -8,9 +8,18 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .._core import constant
 from .._restapi import met_get
+from .common import common_qt, iterbot
 from .common_widgets import line_edit_extended, tag_bar
 from .models import art_model
 from .utility_widgets import details_pane
+
+
+_INDEX_TYPES = QtCore.QModelIndex | QtCore.QPersistentModelIndex
+
+
+class _CropProxy(QtCore.QIdentityProxyModel):
+    def rowCount(self, parent: _INDEX_TYPES=QtCore.QModelIndex()) -> int:
+        return min(80, super().rowCount(parent))
 
 
 class Window(QtWidgets.QWidget):
@@ -154,7 +163,51 @@ class Widget(QtWidgets.QWidget):
         top.addWidget(self._classications_label, 2, 0)
         top.addWidget(self._classications_widget, 2, 1)
 
+        self._source_model: art_model.Model = None  # NOTE: This will be set soon
+        self.set_model(model or art_model.Model())
+
+        self._initialize_default_settings()
         self._initialize_interactive_settings()
+
+        # NOTE: We show some initial data to the user
+        # TODO: Hide this behind a thread later
+        self._source_model.update_artwork_identifiers(met_get.get_all_identifiers())
+
+    def _initialize_default_settings(self) -> None:
+        """Set the default appearance of child widgets."""
+        common_qt.initialize_framed_label(self._no_artwork_label)
+        common_qt.initialize_framed_label(self._details_no_selection_label)
+        self._artwork_splitter.setHandleWidth(25)  # Arbitrary, thick value
+        self._details_switcher.setCurrentWidget(self._details_no_selection_label)
+        self._details_pane.setTabBarAutoHide(True)
+
+        self._filter_line.setPlaceholderText("Example: La Grenouillère")
+
+        self._no_artwork_label.setToolTip(
+            "No artwork has been loaded yet. Once there is artwork to see, "
+            "this widget will be automatically hidden "
+            "and you will see a table with the data.",
+        )
+        self._artwork_view.horizontalHeader().setStretchLastSection(True)
+        self._artwork_view.setSelectionBehavior(
+            QtWidgets.QListView.SelectionBehavior.SelectRows
+        )
+        self._artwork_view.setSelectionMode(
+            QtWidgets.QListView.SelectionMode.ExtendedSelection
+        )
+        self._artwork_view.verticalHeader().hide()
+
+        self._filter_missing_image_check_box.setToolTip(
+            "If enabled, only entries that have a thumbnail will be shown."
+        )
+
+        self._filter_line.setToolTip("Type the name of the Work of Art here.")
+
+        self._details_pane.setToolTip("Information about the selected artwork.")
+        self._details_no_selection_label.setToolTip(
+            "If you are seeing this, you need to select some artwork. "
+            "Once you do that, this widget will be replaced with the artwork details."
+        )
 
     def _initialize_interactive_settings(self) -> None:
         """Create any click / automatic functionality for this instance."""
@@ -168,12 +221,27 @@ class Widget(QtWidgets.QWidget):
 
     def _update_search(self) -> None:
         """Compose a search to The Met's API and get its results."""
-        met_get.search_objects(
+        identifiers = met_get.search_objects(
             has_image=self._filter_missing_image_check_box.isChecked(),
             classifications=self._get_current_classifications(),
             text=self._filter_line.text(),
         )
-        raise RuntimeError("TODO: Write this")
+        self._source_model.update_artwork_identifiers(identifiers)
+
+    def set_model(self, model: art_model.Model) -> None:
+        """Store and display source ``model``.
+
+        Args:
+            model: Some Met Museum-related artwork model.
+
+        Raises:
+            RuntimeError: If ``model`` could not be applied as expected due to a bug.
+
+        """
+        self._source_model = model
+        cropper = _CropProxy(parent=self)
+        cropper.setSourceModel(model)
+        self._artwork_view.setModel(cropper)
 
 
 def _get_classifications_qlineedit() -> line_edit_extended.CompleterLineEdit:
