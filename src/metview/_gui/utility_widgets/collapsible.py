@@ -44,10 +44,10 @@ class SectionHider(QtWidgets.QWidget):
 
     def __init__(
         self,
-        title: str="",
-        duration: int=100,
-        layout: QtWidgets.QLayout | None=None,
-        parent: QtWidgets.QWidget | None=None,
+        title: str = "",
+        duration: int = 100,
+        layout: QtWidgets.QLayout | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ) -> None:
         """Keep track of a top-level label, plus some optional child data.
 
@@ -73,7 +73,9 @@ class SectionHider(QtWidgets.QWidget):
         """
         if duration < 0:
             raise ValueError(
-                'Duration "{duration}" cannot be less than zero.'.format(duration=duration)
+                'Duration "{duration}" cannot be less than zero.'.format(
+                    duration=duration
+                )
             )
 
         super(SectionHider, self).__init__(parent=parent)
@@ -89,7 +91,9 @@ class SectionHider(QtWidgets.QWidget):
         self._main_content = QtWidgets.QScrollArea()
 
         row = 0
-        main_layout.addWidget(self._toggle_button, row, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        main_layout.addWidget(
+            self._toggle_button, row, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
         main_layout.addWidget(self._header, row, 2, 1, 1)
         main_layout.addWidget(self._main_content, row + 1, 0, 1, 3)
 
@@ -106,7 +110,9 @@ class SectionHider(QtWidgets.QWidget):
     def _initialize_appearance_settings(self) -> None:
         """Change the children of this instance to display as expected."""
         self._toggle_button.setStyleSheet("QToolButton { border: none; }")
-        self._toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self._toggle_button.setToolButtonStyle(
+            QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self._toggle_button.setArrowType(QtCore.Qt.ArrowType.RightArrow)
         self._toggle_button.setCheckable(True)
         self._toggle_button.setChecked(False)
@@ -135,13 +141,15 @@ class SectionHider(QtWidgets.QWidget):
             QtCore.QPropertyAnimation(self, QtCore.QByteArray(b"maximumHeight"))
         )
         self._toggle_animation.addAnimation(
-            QtCore.QPropertyAnimation(self._main_content, QtCore.QByteArray(b"maximumHeight"))
+            QtCore.QPropertyAnimation(
+                self._main_content, QtCore.QByteArray(b"maximumHeight")
+            )
         )
 
         layout = typing.cast(QtWidgets.QGridLayout | None, self.layout())
 
         if not layout:
-            raise RuntimeError('No SectionHider main layout.')
+            raise RuntimeError("No SectionHider main layout.")
 
         layout.setVerticalSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -201,10 +209,14 @@ class SectionHider(QtWidgets.QWidget):
         """
         if show:
             self._toggle_button.setArrowType(QtCore.Qt.ArrowType.DownArrow)
-            self._toggle_animation.setDirection(QtCore.QAbstractAnimation.Direction.Forward)
+            self._toggle_animation.setDirection(
+                QtCore.QAbstractAnimation.Direction.Forward
+            )
         else:
             self._toggle_button.setArrowType(QtCore.Qt.ArrowType.RightArrow)
-            self._toggle_animation.setDirection(QtCore.QAbstractAnimation.Direction.Backward)
+            self._toggle_animation.setDirection(
+                QtCore.QAbstractAnimation.Direction.Backward
+            )
 
         if not self._main_content.layout():
             raise RuntimeError("No widget content was found. Cannot expand / collapse.")
@@ -244,7 +256,7 @@ class SectionHider(QtWidgets.QWidget):
             if not isinstance(section_animation, QtCore.QPropertyAnimation):
                 raise RuntimeError(
                     f'Animation "{section_animation}" is invalid. '
-                    'We expected a QPropertyAnimation.',
+                    "We expected a QPropertyAnimation.",
                 )
 
             section_animation.setDuration(self._duration)
@@ -258,7 +270,7 @@ class SectionHider(QtWidgets.QWidget):
         if not isinstance(content_animation, QtCore.QPropertyAnimation):
             raise RuntimeError(
                 f'Animation "{content_animation}" is invalid. '
-                'We expected a QPropertyAnimation.',
+                "We expected a QPropertyAnimation.",
             )
 
         content_animation.setDuration(self._duration)

@@ -22,6 +22,19 @@ T = typing.TypeVar("T")
 _DISPLAY_ROLE = QtCore.Qt.ItemDataRole.DisplayRole
 
 
+class _ArtworkLoadStatistics(typing.NamedTuple):
+    """Describe which Artworks have data vs the ones shown.
+
+    Attributes:
+        total: All of the Artwork that a user might have seen.
+        visible: The number of rows shown.
+
+    """
+
+    total: int
+    visible: int
+
+
 class _ArtworkSortFilterProxy(QtCore.QSortFilterProxyModel):
     """Sort and filter artwork based on the user's input."""
 
@@ -164,9 +177,11 @@ class Window(QtWidgets.QWidget):
 
         self._close_button = QtWidgets.QPushButton("Close")
         self._widget = Widget(search_term=search_term, parent=parent)
+        self._statistics_label = QtWidgets.QLabel()
 
         main_layout.addWidget(self._widget)
         bottom = QtWidgets.QHBoxLayout()
+        bottom.addWidget(self._statistics_label)
         bottom.addStretch()
         bottom.addWidget(self._close_button)
         main_layout.addLayout(bottom)
@@ -198,10 +213,25 @@ class Window(QtWidgets.QWidget):
     def _initialize_interactive_settings(self) -> None:
         """Create any click / automatic functionality for this instance."""
         self._close_button.clicked.connect(self.close)
+        self._widget.statistics_changed.connect(self._update_statistics)
+
+    def _update_statistics(self, statistics: _ArtworkLoadStatistics) -> None:
+        self._statistics_label.setText(
+            f"Visible: {statistics.visible} | Total: {statistics.total}"
+        )
 
 
 class Widget(QtWidgets.QWidget):
-    """The main ``show-gui`` widget. It can be embedded or a standalone window."""
+    """The main ``show-gui`` widget. It can be embedded or a standalone window.
+
+    Attributes:
+        statistics_changed:
+            Any time the view changes in a way that impacts the overall Artwork
+            statistics (e.g. the user launches a new search.)
+
+    """
+
+    statistics_changed = QtCore.Signal(_ArtworkLoadStatistics)
 
     def __init__(
         self,
@@ -402,6 +432,15 @@ class Widget(QtWidgets.QWidget):
         """Get all user-saved Artwork "classifications"."""
         return tuple(self._classications_widget.get_tags())
 
+    def _emit_statistics(self) -> None:
+        """Gather information about the Artwork that the user can see."""
+        parent = QtCore.QModelIndex()
+        top = self._artwork_view.model()
+        visible = top.rowCount(parent)
+        total = self._source_model.rowCount(parent)
+        statistics = _ArtworkLoadStatistics(total=total, visible=visible)
+        self.statistics_changed.emit(statistics)
+
     def _update_details_pane(self) -> None:
         """Show or hide the details pane if the user has selected some artwork."""
         if artworks := self._get_current_artworks():
@@ -426,6 +465,11 @@ class Widget(QtWidgets.QWidget):
             caller: A function that can customize how we find Artwork identifiers.
 
         """
+
+        def _run_post_search_work() -> None:
+            self._update_main_switcher()
+            self._emit_statistics()
+
         # NOTE: Cancel any in-progress searches so we can run another
         for thread, worker in self._threads:
             worker.stop()
@@ -444,7 +488,7 @@ class Widget(QtWidgets.QWidget):
         self._threads.append((thread, worker))
         worker.moveToThread(thread)
         worker.identifiers_found.connect(self._source_model.update_artwork_identifiers)
-        worker.identifiers_found.connect(self._update_main_switcher)
+        worker.identifiers_found.connect(_run_post_search_work)
         thread.started.connect(worker.run)
 
         # PERF: To prevent DDOSing The Met accidentally, we wait.
