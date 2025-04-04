@@ -212,8 +212,7 @@ class Widget(QtWidgets.QWidget):
         self._details_pane = details_pane.DetailsPane()
         self._details_switcher.addWidget(self._details_no_selection_label)
         self._details_switcher.addWidget(self._details_pane)
-        # TODO: Add this later once we have a visual
-        # self._artwork_switcher.addWidget(self._no_artwork_label)
+        self._artwork_switcher.addWidget(self._no_artwork_label)
         self._artwork_switcher.addWidget(self._artwork_splitter)
         self._artwork_splitter.addWidget(self._artwork_view)
         self._artwork_splitter.addWidget(self._details_switcher)
@@ -315,6 +314,13 @@ class Widget(QtWidgets.QWidget):
         """Get all user-saved Artwork "classifications"."""
         return tuple(self._classications_widget.get_tags())
 
+    def _update_main_switcher(self) -> None:
+        """Show the artwork table if there is any data to show."""
+        if not self._source_model.rowCount(QtCore.QModelIndex()):
+            self._artwork_switcher.setCurrentWidget(self._no_artwork_label)
+        else:
+            self._artwork_switcher.setCurrentWidget(self._artwork_splitter)
+
     def _update_search(
         self, caller: typing.Callable[[], list[int]] | None = None
     ) -> None:
@@ -342,6 +348,7 @@ class Widget(QtWidgets.QWidget):
         self._threads.append((thread, worker))
         worker.moveToThread(thread)
         worker.identifiers_found.connect(self._source_model.update_artwork_identifiers)
+        worker.identifiers_found.connect(self._update_main_switcher)
         thread.started.connect(worker.run)
 
         # PERF: To prevent DDOSing The Met accidentally, we wait.
