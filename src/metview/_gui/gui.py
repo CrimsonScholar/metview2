@@ -11,9 +11,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .._core import constant
 from .._restapi import met_get, met_get_type
-from .common import common_qt, qt_constant
+from .common import common_qt, iterbot
 from .common_widgets import line_edit_extended, tag_bar
-from .models import art_model
+from .models import art_model, model_type
 from .utilities import threader
 from .utility_widgets import details_pane
 
@@ -354,9 +354,58 @@ class Widget(QtWidgets.QWidget):
         self._filterer_debouncer.timeout.connect(_update_if_long_enough)
         self._filter_line.textChanged.connect(self._filterer_debouncer.start)
 
+    def _get_current_artworks(self) -> list[QtCore.QModelIndex]:
+        """Get the user's current artwork selection, if any.
+
+        Raises:
+            RuntimeError: If any selected rows somehow did not find artwork.
+
+        Returns:
+            If the current user artwork selection.
+
+        """
+        model = self._artwork_view.selectionModel()
+
+        if not model:
+            raise RuntimeError(
+                "Artwork view has no selection model. This is a bug, please fix!"
+            )
+
+        invalids: list[typing.Any] = []
+        output: list[QtCore.QModelIndex] = []
+        selected = model.selectedIndexes()
+
+        for index in iterbot.iter_unique_rows(selected):
+            data = index.data(art_model.Model.artwork_role)
+
+            if not isinstance(data, model_type.Artwork):
+                invalids.append(data)
+
+            output.append(index)
+
+        if invalids:
+            raise RuntimeError(f'Got unknown "{invalids}" data. Expected arkwork!')
+
+        # IMPORTANT: ``output`` contains proxy indices which could cause the GUI to seg
+        # fault if the user messes with filters so we get the real source index before
+        # returning.
+        #
+        proxy = self._artwork_view.model()
+        source = iterbot.get_lowest_source(proxy)
+
+        return [iterbot.map_to_source_recursively(index, source) for index in output]
+
     def _get_current_classifications(self) -> tuple[str, ...]:
         """Get all user-saved Artwork "classifications"."""
         return tuple(self._classications_widget.get_tags())
+
+    def _update_details_pane(self) -> None:
+        """Show or hide the details pane if the user has selected some artwork."""
+        if artworks := self._get_current_artworks():
+            self._details_pane.set_current_artworks(artworks)
+            self._details_switcher.setCurrentWidget(self._details_pane)
+        else:
+            self._details_switcher.setCurrentWidget(self._details_no_selection_label)
 
     def _update_main_switcher(self) -> None:
         """Show the artwork table if there is any data to show."""
@@ -425,6 +474,15 @@ class Widget(QtWidgets.QWidget):
         self._artwork_view.sortByColumn(
             art_model.Column.title, QtCore.Qt.SortOrder.AscendingOrder
         )
+
+        selection_model = self._artwork_view.selectionModel()
+
+        if not selection_model:
+            raise RuntimeError(
+                "Artwork view has no selection model. This is a bug, please fix!"
+            )
+
+        selection_model.selectionChanged.connect(self._update_details_pane)
 
 
 def _get_classifications_qlineedit() -> line_edit_extended.CompleterLineEdit:
