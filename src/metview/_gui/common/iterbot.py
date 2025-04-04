@@ -8,7 +8,6 @@ import typing
 
 from PySide6 import QtCore
 
-
 T = typing.TypeVar("T")
 
 

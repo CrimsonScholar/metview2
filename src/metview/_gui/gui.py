@@ -13,12 +13,11 @@ from .common_widgets import line_edit_extended, tag_bar
 from .models import art_model
 from .utility_widgets import details_pane
 
-
 _INDEX_TYPES = QtCore.QModelIndex | QtCore.QPersistentModelIndex
 
 
 class _CropProxy(QtCore.QIdentityProxyModel):
-    def rowCount(self, parent: _INDEX_TYPES=QtCore.QModelIndex()) -> int:
+    def rowCount(self, parent: _INDEX_TYPES = QtCore.QModelIndex()) -> int:
         return min(80, super().rowCount(parent))
 
 

@@ -9,7 +9,6 @@ import requests
 
 from ..._restapi import met_get, met_get_type
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -129,7 +128,7 @@ class Artwork:
         except ConnectionError:
             _LOGGER.warning(
                 'Artwork "%s" could not be read for details. '
-                'Using a placeholder fallback.',
+                "Using a placeholder fallback.",
                 self._identifier,
             )
 

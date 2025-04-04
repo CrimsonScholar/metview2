@@ -48,7 +48,7 @@ class Model(QtCore.QAbstractTableModel):
 
     def __init__(
         self,
-        identifiers: typing.Sequence[int] | None=None,
+        identifiers: typing.Sequence[int] | None = None,
         parent: QtCore.QObject | None = None,
     ) -> None:
         """Keep track of some artwork to query later.
