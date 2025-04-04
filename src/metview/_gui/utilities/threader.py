@@ -5,9 +5,7 @@ import typing
 
 from PySide6 import QtCore
 
-
 from ..models import art_model, model_type
-
 
 _LOGGER = logging.getLogger(__name__)
 

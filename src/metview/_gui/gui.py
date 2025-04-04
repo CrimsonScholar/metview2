@@ -15,7 +15,7 @@ from .common import common_qt, iterbot
 from .common_widgets import line_edit_extended, tag_bar
 from .models import art_model, model_type
 from .utilities import threader
-from .utility_widgets import details_pane
+from .utility_widgets import collapsible, details_pane
 
 _INDEX_TYPES = QtCore.QModelIndex | QtCore.QPersistentModelIndex
 T = typing.TypeVar("T")
@@ -227,10 +227,12 @@ class Widget(QtWidgets.QWidget):
         self.setLayout(main_layout)
 
         # NOTE: The top widgets
-        self._filter_label = QtWidgets.QLabel("Filter:")
+        self._filter_label = QtWidgets.QLabel("Filter-By Title:")
         self._filter_line = QtWidgets.QLineEdit()
         self._filter_details = QtWidgets.QPushButton("Details")
+        self._filter_missing_image_check_box = QtWidgets.QCheckBox("Has Images Only")
 
+        self._group_filter_widget = collapsible.SectionHider()
         self._classications_label = QtWidgets.QLabel("Classifications")
         self._classications_widget = tag_bar.TagBar(
             line_edit=_get_classifications_qlineedit()
@@ -265,14 +267,15 @@ class Widget(QtWidgets.QWidget):
         top.addWidget(self._filter_label, 0, 0)
         top.addWidget(self._filter_line, 0, 1)
         main_layout.addLayout(top)
+
+        layout = QtWidgets.QGridLayout()
+        layout.addWidget(self._filter_missing_image_check_box, 0, 0, 1, -1)
+        layout.addWidget(self._classications_label, 1, 0, 1, 1)
+        layout.addWidget(self._classications_widget, 1, 1, 1, -1)
+        self._group_filter_widget.set_content_layout(layout)
+        main_layout.addWidget(self._group_filter_widget)
+
         main_layout.addWidget(self._artwork_switcher)
-
-        # TODO: Add show/hide grouper, later
-        self._filter_missing_image_check_box = QtWidgets.QCheckBox("Has Images Only")
-
-        top.addWidget(self._filter_missing_image_check_box, 1, 0, 1, -1)
-        top.addWidget(self._classications_label, 2, 0)
-        top.addWidget(self._classications_widget, 2, 1)
 
         self._source_model: art_model.Model  # NOTE: This will be set soon
         self.set_model(model or art_model.Model())
