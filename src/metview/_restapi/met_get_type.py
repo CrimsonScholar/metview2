@@ -24,6 +24,10 @@ class Datetime:
 
         self._year = year
 
+    def year(self) -> int:
+        """The B.C. or A.D. year (< 0 == B.C.)."""
+        return self._year
+
     def __eq__(self, other: object) -> bool:
         """Check if this instance and ``other`` are equivalent.
 

@@ -189,10 +189,25 @@ class Model(QtCore.QAbstractTableModel):
                 artwork = self._get_artwork(index)
                 start, end = artwork.get_datetime_range()
 
-                if start == end:
-                    return str(start)
+                if not start:
+                    if end:
+                        return _get_datetime_text(end.year())
 
-                return f"{start} - {end}"
+                    return "<No Datetime>"
+
+                if not end:
+                    return _get_datetime_text(start.year())
+
+                start_year = start.year()
+                end_year = end.year()
+
+                if start_year == end_year:
+                    return _get_datetime_text(start_year)
+
+                start_text = _get_datetime_text(start_year)
+                end_text = _get_datetime_text(end_year)
+
+                return f"{start_text} - {end_text}"
 
             if role == _TOOLTIP_ROLE:
                 return _DATETIME_TOOLTIP
@@ -320,3 +335,21 @@ class Model(QtCore.QAbstractTableModel):
         self._identifiers = identifiers
 
         self.endResetModel()
+
+
+def _get_datetime_text(year: int) -> str:
+    """Keep track of years (A.D. / B.C).
+
+    Args:
+        year: A.D. years are > 0, B.C. are < 0.
+
+    Returns:
+        The found text.
+
+    """
+    text = str(year)
+
+    if year < 0:
+        text += " B.C."
+
+    return text
