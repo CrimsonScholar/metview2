@@ -6,15 +6,18 @@ tag, if you don't want that tag anymore.
 
 """
 
+import logging
 import operator
 import typing
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..common import layouter
 from . import context_manager
 
 _DELIMITER = ","
 _COMMON_HEIGHT = 4
+_LOGGER = logging.getLogger(__name__)
 
 _EAST = QtWidgets.QTabWidget.TabPosition.East
 _WEST = QtWidgets.QTabWidget.TabPosition.West
@@ -163,6 +166,25 @@ class _TagButton(QtWidgets.QWidget):
         self._label.setFont(font)
         self._deleter_button.setFont(font)
 
+    def __eq__(self, other: typing.Any) -> bool:
+        """Check if ``other`` is the same as this instance.
+
+        Args:
+            other: Some other ``_TagButton`` to check.
+
+        Returns:
+            If ``other`` is a button with the same text, return ``True``.
+
+        """
+        if not type(other) == _TagButton:
+            return False
+
+        return self.get_tag_text() == other.get_tag_text()
+
+    def __hash__(self) -> int:
+        """Get a simplified, immutable representation for this instance."""
+        return hash(self.get_tag_text())
+
 
 class TagBar(QtWidgets.QWidget):
     """A fancy QLineEdit that saves text as clickable buttons.
@@ -191,6 +213,7 @@ class TagBar(QtWidgets.QWidget):
         tag_side: QtWidgets.QTabWidget.TabPosition = _WEST,
         delimiter: str = _DELIMITER,
         line_edit: QtWidgets.QLineEdit | None = None,
+        allow_duplicates: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
         """Store tags in this instance and create the default widget display.
@@ -208,6 +231,8 @@ class TagBar(QtWidgets.QWidget):
                 The widget used to input tags. If no widget is given, a simple
                 QLineEdit is used instead. This parameter exists to extend the
                 functionality of the tags widget.
+            allow_duplicates:
+                If ``True``, the same tag can be added more than once.
             parent:
                 An object which, if provided, holds a reference to this instance.
 
@@ -223,6 +248,7 @@ class TagBar(QtWidgets.QWidget):
 
         self.setLayout(QtWidgets.QHBoxLayout())
 
+        self._allow_duplicates = allow_duplicates
         self._tags_container = QtWidgets.QHBoxLayout()
         self._line_edit = line_edit or QtWidgets.QLineEdit()
 
@@ -285,6 +311,14 @@ class TagBar(QtWidgets.QWidget):
 
         """
         tag = _TagButton(text)
+
+        if not self._allow_duplicates and layouter.is_widget_in_layout(
+            tag, self._tags_container
+        ):
+            _LOGGER.debug('Skipped adding "%s" duplicate tag.', tag)
+
+            return
+
         tag.side_button_requested.connect(self._delete_tag)
         self._tags_container.addWidget(tag)
 
