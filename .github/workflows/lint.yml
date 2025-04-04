@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - first_pass
   pull_request:
     branches:
       - main
