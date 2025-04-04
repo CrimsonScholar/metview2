@@ -162,8 +162,10 @@ class Widget(QtWidgets.QWidget):
         top.addWidget(self._classications_label, 2, 0)
         top.addWidget(self._classications_widget, 2, 1)
 
-        self._source_model: art_model.Model = None  # NOTE: This will be set soon
+        self._source_model: art_model.Model  # NOTE: This will be set soon
         self.set_model(model or art_model.Model())
+
+        self._filterer_debouncer = QtCore.QTimer(self)
 
         self._initialize_default_settings()
         self._initialize_interactive_settings()
@@ -225,7 +227,14 @@ class Widget(QtWidgets.QWidget):
 
         self._classications_widget.tags_changed.connect(self._update_search)
         self._filter_missing_image_check_box.stateChanged.connect(self._update_search)
-        self._filter_line.textChanged.connect(_update_if_long_enough)
+
+        # NOTE: Is a user is typing quickly, to keep the GUI snappy, we wait
+        # for a pause in their typing before refreshing.
+        #
+        self._filterer_debouncer.setInterval(200)  # NOTE: Wait 0.2 sec between refresh
+        self._filterer_debouncer.setSingleShot(True)
+        self._filterer_debouncer.timeout.connect(self._update_search)
+        self._filter_line.textChanged.connect(self._filterer_debouncer.start)
 
     def _get_current_classifications(self) -> list[str]:
         """Get all user-saved Artwork "classifications"."""
