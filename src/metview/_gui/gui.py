@@ -259,14 +259,13 @@ class Widget(QtWidgets.QWidget):
         # NOTE: The top widgets
         self._filter_label = QtWidgets.QLabel("Filter-By Title:")
         self._filter_line = QtWidgets.QLineEdit()
+        self._filter_button = QtWidgets.QPushButton("Search")
         self._filter_details = QtWidgets.QPushButton("Details")
         self._filter_missing_image_check_box = QtWidgets.QCheckBox("Has Images Only")
 
-        self._group_filter_widget = collapsible.SectionHider()
+        self._group_filter_widget = collapsible.SectionHider(title="More Filters")
         self._classications_label = QtWidgets.QLabel("Classifications")
-        self._classications_widget = tag_bar.TagBar(
-            line_edit=_get_classifications_qlineedit()
-        )
+        self._classication_widget = _get_classification_qlineedit()
 
         # NOTE: The lower artwork + details widgets
         #
@@ -275,9 +274,7 @@ class Widget(QtWidgets.QWidget):
         # | art_b | artist: Some Person Jr. |
         # +-------+-------------------------+
         #
-        self._no_artwork_label = QtWidgets.QLabel(
-            "No artwork loaded yet. Please wait! ~4 seconds wait time."
-        )
+        self._no_artwork_label = QtWidgets.QLabel("No artwork loaded yet. Please wait!")
         self._artwork_view = QtWidgets.QTableView()
         self._details_switcher = QtWidgets.QStackedWidget()
         self._details_no_selection_label = QtWidgets.QLabel(
@@ -296,12 +293,13 @@ class Widget(QtWidgets.QWidget):
         top = QtWidgets.QGridLayout()
         top.addWidget(self._filter_label, 0, 0)
         top.addWidget(self._filter_line, 0, 1)
+        top.addWidget(self._filter_button, 0, 2)
         main_layout.addLayout(top)
 
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self._filter_missing_image_check_box, 0, 0, 1, -1)
         layout.addWidget(self._classications_label, 1, 0, 1, 1)
-        layout.addWidget(self._classications_widget, 1, 1, 1, -1)
+        layout.addWidget(self._classication_widget, 1, 1, 1, -1)
         self._group_filter_widget.set_content_layout(layout)
         main_layout.addWidget(self._group_filter_widget)
 
@@ -350,6 +348,9 @@ class Widget(QtWidgets.QWidget):
         )
 
         self._filter_line.setToolTip("Type the name of the Work of Art here.")
+        self._classication_widget.setPlaceholderText(
+            "Example: Books, Musical Instruments Prints"
+        )
 
         self._details_pane.setToolTip("Information about the selected artwork.")
         self._details_no_selection_label.setToolTip(
@@ -374,7 +375,6 @@ class Widget(QtWidgets.QWidget):
 
             self._update_search()
 
-        self._classications_widget.tags_changed.connect(_ignore(self._update_search))
         self._filter_missing_image_check_box.stateChanged.connect(
             _ignore(self._update_search)
         )
@@ -386,6 +386,10 @@ class Widget(QtWidgets.QWidget):
         self._filterer_debouncer.setSingleShot(True)
         self._filterer_debouncer.timeout.connect(_update_if_long_enough)
         self._filter_line.textChanged.connect(self._filterer_debouncer.start)
+        self._filter_button.clicked.connect(self._filterer_debouncer.start)
+        self._classication_widget.textChanged.connect(
+            _ignore(self._filterer_debouncer.start)
+        )
 
     def _get_current_artworks(self) -> list[QtCore.QModelIndex]:
         """Get the user's current artwork selection, if any.
@@ -428,9 +432,9 @@ class Widget(QtWidgets.QWidget):
 
         return [iterbot.map_to_source_recursively(index, source) for index in output]
 
-    def _get_current_classifications(self) -> tuple[str, ...]:
-        """Get all user-saved Artwork "classifications"."""
-        return tuple(self._classications_widget.get_tags())
+    def _get_current_classification(self) -> str:
+        """Get all user-saved Artwork "classification"."""
+        return self._classication_widget.text()
 
     def _emit_statistics(self) -> None:
         """Gather information about the Artwork that the user can see."""
@@ -475,7 +479,7 @@ class Widget(QtWidgets.QWidget):
         caller = caller or functools.partial(
             met_get.search_objects,
             has_image=self._filter_missing_image_check_box.isChecked(),
-            classifications=self._get_current_classifications(),
+            classification=self._get_current_classification(),
             text=self._filter_line.text(),
         )
         thread = QtCore.QThread(parent=self)
@@ -528,12 +532,12 @@ class Widget(QtWidgets.QWidget):
         selection_model.selectionChanged.connect(self._update_details_pane)
 
 
-def _get_classifications_qlineedit() -> line_edit_extended.CompleterLineEdit:
+def _get_classification_qlineedit() -> line_edit_extended.CompleterLineEdit:
     """Get a QLineEdit that auto-completes Artwork classification text."""
     widget = line_edit_extended.CompleterLineEdit()
 
     # XXX: In the future it might be fun to auto-generate the list but for
-    # the sake of simplicity, let's hard-code it. It's not like classifications
+    # the sake of simplicity, let's hard-code it. It's not like classification
     # change that often anyway.
     #
     completer = QtWidgets.QCompleter(met_get.KNOWN_CLASSIFICATIONS)

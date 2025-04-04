@@ -15,6 +15,7 @@ _TITLE_NOT_FOUND = "<No title>"
 
 # Reference: https://datatracker.ietf.org/doc/html/rfc3986
 _BASE = os.getenv("MET_MUSEUM_API_DOMAIN", "https://collectionapi.metmuseum.org")
+_SCHEME_SEPARATOR = ":"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -181,14 +182,14 @@ def get_identifier_data(identifier: str | int) -> ObjectDetails:
 @functools.lru_cache()  # IMPORTANT: This could cause space issues in the future. Audit!
 def search_objects(
     text: str | None = "",
-    classifications: tuple[str, ...] | None = None,
+    classification: str | None = None,
     has_image: bool = False,
 ) -> list[int]:
     """Search The Met's database according too all input arguments.
 
     Args:
         text: Some Artwork name to search by, if any.
-        classifications: The allowed types / presentation of the Artwork.
+        classification: The allowed types / presentation of the Artwork.
         has_image: If ``True``, only results with images are returned.
 
     Raises:
@@ -202,10 +203,10 @@ def search_objects(
 
     # NOTE: We don't care about the false case so we just don't check for it here.
     if has_image:
-        parameters["hasIamges"] = "true"
+        parameters["hasImages"] = str(has_image).lower()
 
-    if classifications:
-        parameters["classifications"] = _join(classifications)
+    if classification:
+        parameters["classification"] = classification
 
     if not parameters and not text:
         # PERF: This query is more efficient and if we don't have any search terms, we
@@ -213,12 +214,13 @@ def search_objects(
         #
         return get_all_identifiers()
 
-    parameters["q"] = text or ""
+    parameters["q"] = text or '""'
+    parsed_url = parse.urlparse(_BASE)
+    path = "/public/collection/v1/search"
     # Example: https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&medium=Brass&q=%22%22
-    response = requests.get(
-        parse.urljoin(_BASE, "public/collection/v1/search"),
-        params=parameters,
-    )
+    url = parse.urlunparse((parsed_url.scheme, parsed_url.netloc, path, "", parse.urlencode(parameters), ""))
+    _LOGGER.info('Searching "%s" url.', url)
+    response = requests.get(url)
 
     if response.status_code != 200:
         raise ConnectionError(
