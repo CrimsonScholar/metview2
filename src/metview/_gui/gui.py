@@ -3,6 +3,7 @@
 """The main ``show-gui`` widget. It can be embedded or a standalone window."""
 
 import functools
+import logging
 import math
 import time
 import typing
@@ -11,7 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .._core import constant
 from .._restapi import met_get, met_get_type
-from .common import common_qt, iterbot
+from .common import common_qt, iterbot, qt_constant
 from .common_widgets import line_edit_extended, tag_bar
 from .models import art_model, model_type
 from .utilities import threader
@@ -20,6 +21,7 @@ from .utility_widgets import collapsible, details_pane
 _INDEX_TYPES = QtCore.QModelIndex | QtCore.QPersistentModelIndex
 T = typing.TypeVar("T")
 _DISPLAY_ROLE = QtCore.Qt.ItemDataRole.DisplayRole
+_LOGGER = logging.getLogger(__name__)
 
 
 class _ArtworkLoadStatistics(typing.NamedTuple):
@@ -37,6 +39,52 @@ class _ArtworkLoadStatistics(typing.NamedTuple):
 
 class _ArtworkSortFilterProxy(QtCore.QSortFilterProxyModel):
     """Sort and filter artwork based on the user's input."""
+
+    def __init__(
+        self,
+        filter_functions: (
+            typing.Sequence[typing.Callable[[QtCore.QModelIndex], bool]] | None
+        ) = None,
+        parent: QtCore.QObject | None = None,
+    ):
+        """Store functions which may be used to filter by, later.
+
+        Args:
+            filter_functions:
+                Any functions used to filter by. If no functions are given, no
+                indices will be filtered. If a function is given and returns
+                True, the index is filtered. If the function returns False,
+                it is skipped. If no function returns True, the index is shown.
+            parent:
+                The Qt-based object to assign this instance underneath.
+
+        """
+        super().__init__(parent=parent)
+
+        self._filter_functions = filter_functions or []
+
+    def filterAcceptsRow(self, source_row: int, source_parent: _INDEX_TYPES) -> bool:
+        """Filter the row ``source_row`` in ``source_parent``, if needed.
+
+        Args:
+            source_row:
+                A 0-based index to check within ``source_parent`` for filtering.
+                This row is relative to ``source_parent``.
+            source_parent:
+                The anchor / reference point to search for an index row.
+
+        Returns:
+            bool: If False is returned, the row is hidden. If True, it is shown.
+
+        """
+        model = self.sourceModel()
+        index = model.index(source_row, qt_constant.ANY_COLUMN, source_parent)
+
+        for function in self._filter_functions:
+            if function(index):
+                return False
+
+        return True
 
     def lessThan(self, left: _INDEX_TYPES, right: _INDEX_TYPES) -> bool:
         """Check if ``left`` actually comes before ``right`` when both are sorted.
@@ -492,10 +540,77 @@ class Widget(QtWidgets.QWidget):
             RuntimeError: If ``model`` could not be applied as expected due to a bug.
 
         """
+
+        def _has_image(index: QtCore.QModelIndex) -> bool:
+            if not self._filter_missing_image_check_box.isChecked():
+                return False  # Do not filter (show the ``index``)
+
+            source = iterbot.get_lowest_source(index.model())
+            source_index = iterbot.map_to_source_recursively(index, source)
+            thumbnail_index = source_index.siblingAtColumn(art_model.Column.thumbnail)
+            thumbnail: str | None = None
+
+            if not thumbnail_index.isValid():
+                _LOGGER.error(
+                    'Index "%s" has no thumbnail. Can\'t continue. '
+                    "This should never happen and it's a bug, please fix!",
+                    source_index,
+                )
+
+                return False
+
+            thumbnail = typing.cast(str | None, thumbnail_index.data(_DISPLAY_ROLE))
+
+            if thumbnail:
+                return False  # Do not filter (show the ``index``)
+
+            return True  # No thumbnail was found. Filter the index out.
+
+        def _by_classification(index: QtCore.QModelIndex) -> bool:
+            classification_index = index.siblingAtColumn(art_model.Column.classification)
+
+            if not classification_index.isValid():
+                _LOGGER.warning('Index "%s" has no classification index.', index)
+
+                return False  # Do not filter (show the ``index``)
+
+            text = self._classication_widget.text().strip()
+
+            if not text:
+                # NOTE: The user is not filtering by-name
+
+                return False  # Do not filter (show the ``index``)
+
+            classification = typing.cast(str, classification_index.data(_DISPLAY_ROLE))
+
+            return text.lower() not in classification.lower()
+
+        def _by_name(index: QtCore.QModelIndex) -> bool:
+            title_index = index.siblingAtColumn(art_model.Column.title)
+
+            if not title_index.isValid():
+                _LOGGER.warning('Index "%s" has no title index.', index)
+
+                return False  # Do not filter (show the ``index``)
+
+            text = self._filter_line.text().strip()
+
+            if not text:
+                # NOTE: The user is not filtering by-name
+
+                return False  # Do not filter (show the ``index``)
+
+            title = typing.cast(str, title_index.data(_DISPLAY_ROLE))
+
+            return text.lower() not in title.lower()
+
         self._source_model = model
         cropper = _CropProxy(parent=self)
         cropper.setSourceModel(model)
-        sorter = _ArtworkSortFilterProxy(parent=self)
+        sorter = _ArtworkSortFilterProxy(
+            filter_functions=[_by_name, _by_classification, _has_image],
+            parent=self,
+        )
         sorter.setSourceModel(cropper)
         self._artwork_view.setModel(sorter)
 

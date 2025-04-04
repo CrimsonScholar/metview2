@@ -31,6 +31,19 @@ cd {root} && python -m pip .
 ```
 
 
+## How To Use - GUI
+1. Load the GUI
+2. Type "Hand" in the filter line
+3. Press "Search"
+
+### Filter By Classification
+1. Expand the "More Filters" options
+2. Type "Drawings" in the Classifications line
+3. Press "Search"
+
+And now you have all drawings of a hand
+
+
 ## How To Use - Manually
 ```sh
 python -m metview
