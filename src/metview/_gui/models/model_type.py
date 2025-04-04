@@ -1,12 +1,16 @@
 """Internal data to define Qt + MVC types."""
 
 import functools
+import logging
 import textwrap
 import typing
 
 import requests
 
 from ..._restapi import met_get, met_get_type
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Artwork:
@@ -120,7 +124,23 @@ class Artwork:
         out" the data.
 
         """
-        self._details = met_get.get_identifier_data(self._identifier)
+        try:
+            self._details = met_get.get_identifier_data(self._identifier)
+        except ConnectionError:
+            _LOGGER.warning(
+                'Artwork "%s" could not be read for details. '
+                'Using a placeholder fallback.',
+                self._identifier,
+            )
+
+            self._details = met_get.ObjectDetails(
+                artist="",
+                classification=None,
+                datetime_range=(None, None),
+                medium=None,
+                thumbnail_url=None,
+                title="",
+            )
 
     def __eq__(self, other: typing.Any) -> bool:
         """Check if ``other`` is the same as this instance.

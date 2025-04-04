@@ -211,9 +211,22 @@ class Widget(QtWidgets.QWidget):
 
     def _initialize_interactive_settings(self) -> None:
         """Create any click / automatic functionality for this instance."""
+
+        def _update_if_long_enough() -> None:
+            # NOTE: A query with short text can take a very long time. To avoid
+            # user stress, we enforce a minimum before the search shows results.
+            #
+            # XXX: This isn't the best way to do this but, for the purposes of
+            # the assessment, this is enough, I think.
+            #
+            if len(self._filter_line.text().strip()) < 3:
+                return
+
+            self._update_search()
+
+        self._classications_widget.tags_changed.connect(self._update_search)
         self._filter_missing_image_check_box.stateChanged.connect(self._update_search)
-        # TODO: Add debouncer later
-        self._filter_line.textChanged.connect(self._update_search)
+        self._filter_line.textChanged.connect(_update_if_long_enough)
 
     def _get_current_classifications(self) -> list[str]:
         """Get all user-saved Artwork "classifications"."""
