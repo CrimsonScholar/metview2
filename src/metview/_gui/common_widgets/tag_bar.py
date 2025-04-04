@@ -86,19 +86,20 @@ class _TagButton(QtWidgets.QWidget):
         """
         super(_TagButton, self).__init__(parent=parent)
 
-        self.setLayout(QtWidgets.QHBoxLayout())
+        main_layout = QtWidgets.QHBoxLayout()
+        self.setLayout(main_layout)
 
         self._deleter_button = _ClickLabel(button_text)
 
         self._tag = QtWidgets.QFrame()
-        main_layout = QtWidgets.QHBoxLayout()
-        self._tag.setLayout(main_layout)
+        tag_layout = QtWidgets.QHBoxLayout()
+        self._tag.setLayout(tag_layout)
 
         self._label = QtWidgets.QLabel(text)
 
-        main_layout.addWidget(self._label)
-        main_layout.addItem(_create_horizontal_spacer(2))
-        main_layout.addWidget(self._deleter_button)
+        tag_layout.addWidget(self._label)
+        tag_layout.addItem(_create_horizontal_spacer(2))
+        tag_layout.addWidget(self._deleter_button)
         main_layout.addWidget(self._tag)
 
         self._initialize_default_settings()

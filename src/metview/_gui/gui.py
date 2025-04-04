@@ -8,7 +8,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .._core import constant
 from .._restapi import met_get
-from .common_widgets import tag_bar
+from .common_widgets import line_edit_extended, tag_bar
 from .models import art_model
 from .utility_widgets import details_pane
 
@@ -176,9 +176,9 @@ class Widget(QtWidgets.QWidget):
         raise RuntimeError("TODO: Write this")
 
 
-def _get_classifications_qlineedit() -> QtWidgets.QLineEdit:
+def _get_classifications_qlineedit() -> line_edit_extended.CompleterLineEdit:
     """Get a QLineEdit that auto-completes Artwork classification text."""
-    widget = QtWidgets.QLineEdit()
+    widget = line_edit_extended.CompleterLineEdit()
 
     # XXX: In the future it might be fun to auto-generate the list but for
     # the sake of simplicity, let's hard-code it. It's not like classifications
