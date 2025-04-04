@@ -1,5 +1,6 @@
 """A really thin wrap around the Met Museum (JSON-based) REST-API."""
 
+import functools
 import logging
 import os
 import typing
@@ -129,6 +130,7 @@ def _join(text: typing.Iterable[str]) -> str:
     return "|".join(text)
 
 
+@functools.lru_cache()
 def get_all_identifiers() -> list[int]:
     """Find all Met Museum Artwork IDs."""
     url = parse.urljoin(_BASE, "public/collection/v1/objects")
@@ -176,9 +178,10 @@ def get_identifier_data(identifier: str | int) -> ObjectDetails:
     )
 
 
+@functools.lru_cache()  # IMPORTANT: This could cause space issues in the future. Audit!
 def search_objects(
     text: str | None = "",
-    classifications: typing.Iterable[str] | None = None,
+    classifications: tuple[str, ...] | None = None,
     has_image: bool = False,
 ) -> list[int]:
     """Search The Met's database according too all input arguments.
@@ -203,6 +206,12 @@ def search_objects(
 
     if classifications:
         parameters["classifications"] = _join(classifications)
+
+    if not parameters and not text:
+        # PERF: This query is more efficient and if we don't have any search terms, we
+        # might as well get the savings.
+        #
+        return get_all_identifiers()
 
     parameters["q"] = text or ""
     # Example: https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&medium=Brass&q=%22%22

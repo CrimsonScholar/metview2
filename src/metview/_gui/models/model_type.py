@@ -92,7 +92,7 @@ class Artwork:
             it is not readable, ``None`` is returned.
 
         """
-        # NOTE: The Met's database keeps thumbnail information separate from
+        # PERF: The Met's database keeps thumbnail information separate from
         # the database because the images are large. So we separately cache it.
         #
         if thumbnail_url := self.get_thumbnail_url():
