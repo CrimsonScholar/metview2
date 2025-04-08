@@ -12,7 +12,6 @@ from PySide6 import QtCore
 
 from . import qt_constant
 
-
 T = typing.TypeVar("T")
 
 
@@ -94,7 +93,7 @@ def get_lowest_source(model: QtCore.QAbstractItemModel) -> QtCore.QAbstractItemM
 
 def get_sibling_range(
     index: QtCore.QModelIndex,
-    direction: str="all",
+    direction: str = "all",
 ) -> tuple[QtCore.QModelIndex, QtCore.QModelIndex]:
     """Get the column siblings of ``index``.
 

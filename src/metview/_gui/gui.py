@@ -292,8 +292,7 @@ class _MaskedDataProxy(QtCore.QIdentityProxyModel):
 
         model = self
         all_proxy_indices = [
-            model.index(row, qt_constant.ANY_COLUMN, parent)
-            for row in range(100)
+            model.index(row, qt_constant.ANY_COLUMN, parent) for row in range(100)
         ]
 
         count = 0
@@ -796,7 +795,9 @@ class Widget(QtWidgets.QWidget):
             return True  # No thumbnail was found. Filter the index out.
 
         def _by_classification(index: QtCore.QModelIndex) -> bool:
-            classification_index = index.siblingAtColumn(art_model.Column.classification)
+            classification_index = index.siblingAtColumn(
+                art_model.Column.classification
+            )
 
             if not classification_index.isValid():
                 _LOGGER.warning('Index "%s" has no classification index.', index)
