@@ -553,6 +553,7 @@ class Widget(QtWidgets.QWidget):
         self._details_switcher.setCurrentWidget(self._details_no_selection_label)
         self._details_pane.setTabBarAutoHide(True)
 
+        self._classication_widget.setToolTip("Example: Drawings")
         self._filter_line.setPlaceholderText("Example: La Grenouillère")
 
         self._no_artwork_label.setToolTip(
