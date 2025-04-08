@@ -730,8 +730,6 @@ class Widget(QtWidgets.QWidget):
             if thread.isRunning():
                 thread.quit()
 
-        self._threads[:] = []
-
         caller = caller or functools.partial(
             met_get.search_objects,
             has_image=self._filter_missing_image_check_box.isChecked(),
