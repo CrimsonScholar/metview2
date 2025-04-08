@@ -544,6 +544,7 @@ class Widget(QtWidgets.QWidget):
 
         # NOTE: We show some initial data to the user
         self._update_search(met_get.get_all_identifiers)
+        self._artwork_switcher.setCurrentWidget(self._artwork_splitter)
 
     def _initialize_default_settings(self) -> None:
         """Set the default appearance of child widgets."""
@@ -685,13 +686,6 @@ class Widget(QtWidgets.QWidget):
             self._details_switcher.setCurrentWidget(self._details_pane)
         else:
             self._details_switcher.setCurrentWidget(self._details_no_selection_label)
-
-    def _update_main_switcher(self) -> None:
-        """Show the artwork table if there is any data to show."""
-        if not self._source_model.rowCount(QtCore.QModelIndex()):
-            self._artwork_switcher.setCurrentWidget(self._no_artwork_label)
-        else:
-            self._artwork_switcher.setCurrentWidget(self._artwork_splitter)
 
     def _update_search(
         self, caller: typing.Callable[[], list[int]] | None = None
