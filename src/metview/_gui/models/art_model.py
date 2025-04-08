@@ -297,9 +297,13 @@ class Model(QtCore.QAbstractTableModel):
         try:
             identifier = self._identifiers[row]
         except IndexError:
+            _LOGGER.warning('No identifier for "%s" row was found.', row)
+
             return QtCore.QModelIndex()
 
         if column not in self._columns:
+            _LOGGER.warning('No column "%s" is not valid.', column)
+
             return QtCore.QModelIndex()
 
         return self.createIndex(row, column, identifier)
