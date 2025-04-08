@@ -53,7 +53,13 @@ The way I got around this is to split the Qt models.
   - This proxy is for the sake of this assessment's requirements. In a production
     scenario this proxy would likely be a model that implements chunked `canFetchMore` +
     `fetchMore` implementations.
-3. `_ArtworkSortFilterProxy` - Implements any extra sort and filter logic
+3. `_MaskedDataProxy` - Responsible for deferring calls to The MET's REST API
+  - Since Qt refreshes `data()` super often, every row initially is loaded with a fake
+    placeholder using this model. Once the row actually has data, this model then
+    notifies views to update (re-sort / re-filter / etc).
+  - By doing this, Qt can refresh all it wants and the low latency code will
+    not cause stutters for the user.
+4. `_ArtworkSortFilterProxy` - Implements any extra sort and filter logic
   - Sorting requires getting an Artwork's title and that query is 90-150ms. This would
     be very slow. But because the other proxies before it limit the amount of data
     coming through, the remaining data to sort is much easier to handle for Qt.
@@ -76,7 +82,7 @@ check those sections out.
 
 # Rejected Ideas
 At one point I thought "maybe each time I search, I could serialize the text, hasImage,
-classifications, etc and use that as a query+result as a cache. That way if users
+classification, etc and use that as a query+result as a cache. That way if users
 search for something and want to go back, they don't have to pay for the query the
 second time". It's a decent idea but without knowing the upper bounds of the database
 results, it could be a bad idea. I added caching to `met_get.search_objects` but

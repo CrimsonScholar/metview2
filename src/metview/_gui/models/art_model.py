@@ -7,6 +7,7 @@ import typing
 from PySide6 import QtCore
 
 from ..._restapi import met_get_type
+from ..common import qt_constant
 from . import model_type
 
 _ARTIST_TOOLTIP = "The person, group, or entity that created the art."
@@ -40,7 +41,17 @@ class Column(enum.IntEnum):
 
 
 class Model(QtCore.QAbstractTableModel):
-    """The MVC model that interacts between The Met's API and Qt."""
+    """The MVC model that interacts between The Met's API and Qt.
+
+    Attributes:
+        artwork_role:
+            The same signal as ``data_role`` but specifically for retrieving the
+            whole-row underlying Qt object.
+        data_role:
+            Get the raw data from some Qt row / column cell. Warning, use
+            caution and do not mutate the returned data. Read-operations only.
+
+    """
 
     _columns = frozenset(value.value for value in Column.__members__.values())
     artwork_role = QtCore.Qt.ItemDataRole.UserRole
