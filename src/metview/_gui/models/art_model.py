@@ -63,6 +63,7 @@ class Model(QtCore.QAbstractTableModel):
         """
         super().__init__(parent)
 
+        self._identifiers_count = 0
         self._identifiers = identifiers or []
         self._cache: dict[int, model_type.Artwork] = {}
 
@@ -294,12 +295,16 @@ class Model(QtCore.QAbstractTableModel):
             A valid or invalid index.
 
         """
-        try:
-            identifier = self._identifiers[row]
-        except IndexError:
-            _LOGGER.warning('No identifier for "%s" row was found.', row)
+        if row < 0 or row >= self._identifiers_count:
+            _LOGGER.warning(
+                'Row "%s" is out of range of "%s" count.',
+                row,
+                self._identifiers_count,
+            )
 
             return QtCore.QModelIndex()
+
+        identifier = self._identifiers[row]
 
         if column not in self._columns:
             _LOGGER.warning('No column "%s" is not valid.', column)
@@ -337,6 +342,7 @@ class Model(QtCore.QAbstractTableModel):
         self.beginResetModel()
 
         self._identifiers = identifiers
+        self._identifiers_count = len(self._identifiers)
 
         self.endResetModel()
 
