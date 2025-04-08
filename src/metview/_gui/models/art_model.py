@@ -351,9 +351,7 @@ def _get_datetime_text(year: int) -> str:
         The found text.
 
     """
-    text = str(year)
-
     if year < 0:
-        text += " B.C."
+        return f"{-1 * year} B.C."
 
-    return text
+    return str(year)
